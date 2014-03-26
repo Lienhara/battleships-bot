@@ -208,7 +208,7 @@ class Battleship:
                 "orientation": "horizontal"
             },
             3: {
-                "point": "04",
+                "point": "00",
                 "orientation": "vertical"
             },
             4: {
