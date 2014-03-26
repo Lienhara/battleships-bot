@@ -10,4 +10,7 @@
 #   ruby            ex. 'ruby bot.rb $1'
 #   PHP             ex. 'php bot.php $1'
 
-coffee bot.coffee $1
+# This is the random bot provided
+#coffee bot.coffee $1
+# Smart bot implemented in python
+python bot.py $1
