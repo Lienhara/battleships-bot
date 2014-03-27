@@ -102,7 +102,15 @@ class Battleship:
         
         # Find biggest first
         count = 0
-        while((count < 5) and (self.biggestNotDestroyed <= len(self.hitNotDestroyed))):
+        if 5 in self.destroyed:
+            self.__findDestroyedShip(5)
+        if 4 in self.destroyed:
+            self.__findDestroyedShip(4)
+        if 3 in self.destroyed:
+            self.__findDestroyedShip(3)
+        if 2 in self.destroyed:
+            self.__findDestroyedShip(2)
+        while((count < 3) and (self.biggestNotDestroyed <= len(self.hitNotDestroyed))):
             if 5 in self.destroyed:
                 self.__findDestroyedShip(5)
             if 4 in self.destroyed:
@@ -371,7 +379,7 @@ class Battleship:
         # Heuristic against human players : little ship in corners...
         if (possib > 0) and (self.biggestNotDestroyed < 3):
             if (move == 00) or (move == 77) or (move == 70) or (move == 07):
-                possib += 2
+                possib += 1
 
         return possib
 
@@ -398,8 +406,8 @@ class Battleship:
         moveTop   = random.randint(0, 1)
         moveRight = random.randint(0, 1)
 
-        location2 = 57 + 10 * max(random.randint(0, 1), moveRight)
-        location3 = 00 + random.randint(0, 1) + 10 * random.randint(0, 1) * (moveBottom - 1)
+        location2 = (57 + 10 * max(random.randint(0, 1), moveRight)) - 7 * moveBottom * random.randint(0, 1)
+        location3 = 00 + random.randint(0, 1) * (1 - moveBottom) + 10 * random.randint(0, 1)
         location4 = 07 - moveTop + 10 * moveRight
         location5 = 30 + moveBottom
 
