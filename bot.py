@@ -40,12 +40,20 @@ class Battleship:
         if 3 in self.destroyed:
             if (self.biggestNotDestroyed == 3):
                 self.biggestNotDestroyed = 2
+		# Variables to test if ships are found
+        self.ship2IsFound = False
+        self.ship3IsFound = False
+        self.ship4IsFound = False
+        self.ship5IsFound = False
 
 		# Lists that are used to compute next move
 		# List of previous moves
         self.intMoves = [int(x) for x in self.moves]
 		# List of my previous moves
-        self.intMyTurns = [(int(x) % 1000) for x in self.moves]
+        self.intMyTurns = []
+        for index in range(0, len(self.intMoves)):
+            if (self.intMoves[index] / 1000 == self.player):
+                self.intMyTurns.append(self.intMoves[index] % 1000)
 		# List of my previous moves
         self.intMyMoves = [(x / 10) for x in self.intMyTurns]
 		# List of my previous hits
@@ -110,14 +118,15 @@ class Battleship:
             self.__findDestroyedShip(3)
         if 2 in self.destroyed:
             self.__findDestroyedShip(2)
-        while((count < 3) and (self.biggestNotDestroyed <= len(self.hitNotDestroyed))):
-            if 5 in self.destroyed:
+        # Just to be sure...
+        while(count < 3):
+            if (5 in self.destroyed) and (not self.ship5IsFound):
                 self.__findDestroyedShip(5)
-            if 4 in self.destroyed:
+            if (4 in self.destroyed) and (not self.ship4IsFound):
                 self.__findDestroyedShip(4)
-            if 3 in self.destroyed:
+            if (3 in self.destroyed) and (not self.ship3IsFound):
                 self.__findDestroyedShip(3)
-            if 2 in self.destroyed:
+            if (2 in self.destroyed) and (not self.ship2IsFound):
                 self.__findDestroyedShip(2)
             count += 1
 
@@ -181,31 +190,33 @@ class Battleship:
             if possib > 1:
                 return 0
 
+            self.hitNotDestroyed.remove(destroyingMove)
+            self.missedAndDestroyed.append(destroyingMove)
             if (left):
-                self.hitNotDestroyed.remove(destroyingMove)
-                self.missedAndDestroyed.append(destroyingMove)
                 for index in range(1, destroyedSize):
                     self.hitNotDestroyed.remove(destroyingMove - 10*index)
                     self.missedAndDestroyed.append(destroyingMove - 10*index)
             if (right):
-                self.hitNotDestroyed.remove(destroyingMove)
-                self.missedAndDestroyed.append(destroyingMove)
                 for index in range(1, destroyedSize):
                     self.hitNotDestroyed.remove(destroyingMove + 10*index)
                     self.missedAndDestroyed.append(destroyingMove + 10*index)
             if (top):
-                self.hitNotDestroyed.remove(destroyingMove)
-                self.missedAndDestroyed.append(destroyingMove)
                 for index in range(1, destroyedSize):
                     self.hitNotDestroyed.remove(destroyingMove - index)
                     self.missedAndDestroyed.append(destroyingMove - index)
             if (bottom):
-                self.hitNotDestroyed.remove(destroyingMove)
-                self.missedAndDestroyed.append(destroyingMove)
                 for index in range(1, destroyedSize):
                     self.hitNotDestroyed.remove(destroyingMove + index)
                     self.missedAndDestroyed.append(destroyingMove + index)
 
+        if (size == 2):
+            self.ship2IsFound = True
+        if (size == 3):
+            self.ship3IsFound = True
+        if (size == 4):
+            self.ship4IsFound = True
+        if (size == 5):
+            self.ship5IsFound = True
 
     def __findMoveDestroyingShip(self, size):
 
