@@ -1,5 +1,7 @@
 #!/bin/env python2.7
 
+# Have fun if you read this ****
+
 import sys
 
 import json
@@ -28,9 +30,29 @@ class Battleship:
         for index, length in enumerate(self.destroyed):
             self.destroyed[index] = int(length)
 
+		# Biggest ship alive
+        self.biggestNotDestroyed = 5
+        if 5 in self.destroyed:
+            self.biggestNotDestroyed = 4
+        if 4 in self.destroyed:
+            if (self.biggestNotDestroyed == 4):
+                self.biggestNotDestroyed = 3
+        if 3 in self.destroyed:
+            if (self.biggestNotDestroyed == 3):
+                self.biggestNotDestroyed = 2
+
 		# Lists that are used to compute next move
 		# List of previous moves
         self.intMoves = [int(x) for x in self.moves]
+		# List of my previous moves
+        self.intMyTurns = [(int(x) % 1000) for x in self.moves]
+		# List of my previous moves
+        self.intMyMoves = [(x / 10) for x in self.intMyTurns]
+		# List of my previous hits
+        self.intMyHits = []
+        for index in range(0, len(self.intMyTurns)):
+            if (self.intMyTurns[index] % 10 > 2):
+                self.intMyHits.append(self.intMyTurns[index] / 10)
 		# List of missed shots
         self.missedAndDestroyed = [int(x) for x in self.missed]
 		# List of missed shots
@@ -61,15 +83,35 @@ class Battleship:
 
     def __findDestroyedShips(self):
 
-        # Find biggest first
+        if not(self.destroyed):
+            return 0
+
+        numberCellsHit = 0
         if 5 in self.destroyed:
-            self.__findDestroyedShip(5)
+            numberCellsHit += 5
         if 4 in self.destroyed:
-            self.__findDestroyedShip(4)
+            numberCellsHit += 4
         if 3 in self.destroyed:
-            self.__findDestroyedShip(3)
+            numberCellsHit += 3
         if 2 in self.destroyed:
-            self.__findDestroyedShip(2)
+            numberCellsHit += 2
+        if numberCellsHit == len(self.hitNotDestroyed):
+            self.missedAndDestroyed.extend(self.hitNotDestroyed)
+            self.hitNotDestroyed = []
+            return 0
+        
+        # Find biggest first
+        count = 0
+        while((count < 5) and (self.biggestNotDestroyed <= len(self.hitNotDestroyed))):
+            if 5 in self.destroyed:
+                self.__findDestroyedShip(5)
+            if 4 in self.destroyed:
+                self.__findDestroyedShip(4)
+            if 3 in self.destroyed:
+                self.__findDestroyedShip(3)
+            if 2 in self.destroyed:
+                self.__findDestroyedShip(2)
+            count += 1
 
 
     def __findDestroyedShip(self, size):
@@ -83,34 +125,169 @@ class Battleship:
             elif 1 + self.__vertNeighbors(hit, self.hitNotDestroyed) == size:
                 numberFound += 1
 
-        if numberFound != size:
-            return 0
+        if numberFound == size:
+            for hit in self.hitNotDestroyed:
+                if 1 + self.__horizNeighbors(hit, self.hitNotDestroyed) == size:
+                    nLeft = self.__leftNeighbors(hit, self.hitNotDestroyed)
+                    nRight = self.__rightNeighbors(hit, self.hitNotDestroyed)
+                    for i in range(1,nLeft+1) :
+                        self.missedAndDestroyed.append(hit-10*i)
+                        self.hitNotDestroyed.remove(hit-10*i)
+                    for i in range(1,nRight+1) :
+                        self.missedAndDestroyed.append(hit+10*i)
+                        self.hitNotDestroyed.remove(hit+10*i)
+                    self.missedAndDestroyed.append(hit)
+                    self.hitNotDestroyed.remove(hit)
+                    break
+                elif 1 + self.__vertNeighbors(hit, self.hitNotDestroyed) == size:
+                    nTop = self.__topNeighbors(hit, self.hitNotDestroyed)
+                    nBottom = self.__bottomNeighbors(hit, self.hitNotDestroyed)
+                    for i in range(1,nTop+1) :
+                        self.missedAndDestroyed.append(hit-i)
+                        self.hitNotDestroyed.remove(hit-i)
+                    for i in range(1,nBottom+1) :
+                        self.missedAndDestroyed.append(hit+i)
+                        self.hitNotDestroyed.remove(hit+i)
+                    self.missedAndDestroyed.append(hit)
+                    self.hitNotDestroyed.remove(hit)
+                    break
+        else:
+            destroyingMove = self.__findMoveDestroyingShip(size)
+            destroyingIndex = self.intMyHits.index(destroyingMove)
+            destroyedSize = size
+            left, right, top, bottom = False, False, False, False
+            left   = self.__checkIfDestroyedLeft(destroyingMove, destroyingIndex, destroyedSize)
+            right  = self.__checkIfDestroyedRight(destroyingMove, destroyingIndex, destroyedSize)
+            top    = self.__checkIfDestroyedTop(destroyingMove, destroyingIndex, destroyedSize)
+            bottom = self.__checkIfDestroyedBottom(destroyingMove, destroyingIndex, destroyedSize)
 
-        for hit in self.hitNotDestroyed:
-            if 1 + self.__horizNeighbors(hit, self.hitNotDestroyed) == size:
-                nLeft = self.__leftNeighbors(hit, self.hitNotDestroyed)
-                nRight = self.__rightNeighbors(hit, self.hitNotDestroyed)
-                for i in range(1,nLeft+1) :
-                    self.missedAndDestroyed.append(hit-i)
-                    self.hitNotDestroyed.remove(hit-i)
-                for i in range(1,nRight+1) :
-                    self.missedAndDestroyed.append(hit+i)
-                    self.hitNotDestroyed.remove(hit+i)
-                self.missedAndDestroyed.append(hit)
-                self.hitNotDestroyed.remove(hit)
-                break
-            elif 1 + self.__vertNeighbors(hit, self.hitNotDestroyed) == size:
-                nTop = self.__topNeighbors(hit, self.hitNotDestroyed)
-                nBottom = self.__bottomNeighbors(hit, self.hitNotDestroyed)
-                for i in range(1,nTop+1) :
-                    self.missedAndDestroyed.append(hit-10*i)
-                    self.hitNotDestroyed.remove(hit-10*i)
-                for i in range(1,nBottom+1) :
-                    self.missedAndDestroyed.append(hit+10*i)
-                    self.hitNotDestroyed.remove(hit+10*i)
-                self.missedAndDestroyed.append(hit)
-                self.hitNotDestroyed.remove(hit)
-                break
+            possib = 0
+            if left:
+                possib += 1
+            if right:
+                possib += 1
+            if top:
+                possib += 1
+            if bottom:
+                possib += 1
+            if possib > 1:
+                return 0
+
+            if (left):
+                self.hitNotDestroyed.remove(destroyingMove)
+                self.missedAndDestroyed.append(destroyingMove)
+                for index in range(1, destroyedSize):
+                    self.hitNotDestroyed.remove(destroyingMove - 10*index)
+                    self.missedAndDestroyed.append(destroyingMove - 10*index)
+            if (right):
+                self.hitNotDestroyed.remove(destroyingMove)
+                self.missedAndDestroyed.append(destroyingMove)
+                for index in range(1, destroyedSize):
+                    self.hitNotDestroyed.remove(destroyingMove + 10*index)
+                    self.missedAndDestroyed.append(destroyingMove + 10*index)
+            if (top):
+                self.hitNotDestroyed.remove(destroyingMove)
+                self.missedAndDestroyed.append(destroyingMove)
+                for index in range(1, destroyedSize):
+                    self.hitNotDestroyed.remove(destroyingMove - index)
+                    self.missedAndDestroyed.append(destroyingMove - index)
+            if (bottom):
+                self.hitNotDestroyed.remove(destroyingMove)
+                self.missedAndDestroyed.append(destroyingMove)
+                for index in range(1, destroyedSize):
+                    self.hitNotDestroyed.remove(destroyingMove + index)
+                    self.missedAndDestroyed.append(destroyingMove + index)
+
+
+    def __findMoveDestroyingShip(self, size):
+
+        index = self.destroyed.index(size)
+        currIndex = -1
+        for move in self.intMyTurns:
+            if (move % 10 == 4):
+                currIndex += 1
+            if (currIndex == index):
+                return move / 10
+
+
+    def __checkIfDestroyedLeft(self, destroyingMove, destroyingIndex, destroyedSize):
+
+        leftNeighbors = 1 + self.__leftNeighbors(destroyingMove, self.hitNotDestroyed)
+
+        if (leftNeighbors < destroyedSize):
+            return False
+
+        neighborsMoves = []
+        for index in range(1, destroyedSize):
+            neighborsMoves.append(destroyingMove - 10*index)
+
+        neighborsHit = 1
+        for index in range(0, destroyingIndex):
+            if (self.intMyHits[index] in neighborsMoves) and \
+               (self.intMyHits[index] in self.hitNotDestroyed):
+                neighborsHit += 1
+
+        return (neighborsHit == destroyedSize)
+
+
+    def __checkIfDestroyedRight(self, destroyingMove, destroyingIndex, destroyedSize):
+
+        rightNeighbors = 1 + self.__rightNeighbors(destroyingMove, self.hitNotDestroyed)
+
+        if (rightNeighbors < destroyedSize):
+            return False
+
+        neighborsMoves = []
+        for index in range(1, destroyedSize):
+            neighborsMoves.append(destroyingMove + 10*index)
+
+        neighborsHit = 1
+        for index in range(0, destroyingIndex):
+            if (self.intMyHits[index] in neighborsMoves) and \
+               (self.intMyHits[index] in self.hitNotDestroyed):
+                neighborsHit += 1
+
+        return (neighborsHit == destroyedSize)
+
+
+    def __checkIfDestroyedTop(self, destroyingMove, destroyingIndex, destroyedSize):
+
+        topNeighbors = 1 + self.__topNeighbors(destroyingMove, self.hitNotDestroyed)
+
+        if (topNeighbors < destroyedSize):
+            return False
+
+        neighborsMoves = []
+        for index in range(1, destroyedSize):
+            neighborsMoves.append(destroyingMove - index)
+
+        neighborsHit = 1
+        for index in range(0, destroyingIndex):
+            if (self.intMyHits[index] in neighborsMoves) and \
+               (self.intMyHits[index] in self.hitNotDestroyed):
+                neighborsHit += 1
+
+        return (neighborsHit == destroyedSize)
+
+
+    def __checkIfDestroyedBottom(self, destroyingMove, destroyingIndex, destroyedSize):
+
+        bottomNeighbors = 1 + self.__bottomNeighbors(destroyingMove, self.hitNotDestroyed)
+
+        if (bottomNeighbors < destroyedSize):
+            return False
+
+        neighborsMoves = []
+        for index in range(1, destroyedSize):
+            neighborsMoves.append(destroyingMove + index)
+
+        neighborsHit = 1
+        for index in range(0, destroyingIndex):
+            if (self.intMyHits[index] in neighborsMoves) and \
+               (self.intMyHits[index] in self.hitNotDestroyed):
+                neighborsHit += 1
+
+        return (neighborsHit == destroyedSize)
 
 
     def __horizNeighbors(self, move, moveList):
@@ -123,32 +300,39 @@ class Battleship:
 
     def __leftNeighbors(self, move, moveList):
 
-        if (move - 1) in moveList:
-           return 1 + self.__leftNeighbors(move - 1, moveList)
+        if (move - 10) in moveList:
+           return 1 + self.__leftNeighbors(move - 10, moveList)
         return 0
 
     def __rightNeighbors(self, move, moveList):
 
-        if (move + 1) in moveList:
-            return 1 + self.__rightNeighbors(move + 1, moveList)
+        if (move + 10) in moveList:
+            return 1 + self.__rightNeighbors(move + 10, moveList)
         return 0
 
     def __topNeighbors(self, move, moveList):
 
-        if (move - 10) in moveList:
-            return 1 + self.__topNeighbors(move - 10, moveList)
+        if (move - 1) in moveList:
+            return 1 + self.__topNeighbors(move - 1, moveList)
         return 0
 
     def __bottomNeighbors(self, move, moveList):
 
-        if (move + 10) in moveList:
-            return 1 + self.__bottomNeighbors(move + 10, moveList)
+        if (move + 1) in moveList:
+            return 1 + self.__bottomNeighbors(move + 1, moveList)
         return 0
+
+
+    def __initChancesToHaveShips(self):
+
+        for row in range(0,8):
+            for col in range(0,8):
+                self.chancesToHaveShips[10*row + col] = -1
 
 
     def __countPossibilities(self, move):
 
-        possib = 1
+        possib = 0
 
         nLeft = self.__leftNeighbors(move, self.emptyCells)
         nRight = self.__rightNeighbors(move, self.emptyCells)
@@ -182,41 +366,67 @@ class Battleship:
         nBottom = self.__bottomNeighbors(move, self.hitNotDestroyed)
         hNeighbors = nLeft + nRight
         vNeighbors = nTop + nBottom
+        possib += 100 * (hNeighbors * hNeighbors + vNeighbors * vNeighbors)
 
-        possib += 100 * (hNeighbors + vNeighbors)
+        # Heuristic against human players : little ship in corners...
+        if (possib > 0) and (self.biggestNotDestroyed < 3):
+            if (move == 00) or (move == 77) or (move == 70) or (move == 07):
+                possib += 2
+
         return possib
 
 
     def __computeChances(self):
         
+        #total = 0
+
         for point in self.emptyCells:
+            #total += self.__countPossibilities(point)
             self.chancesToHaveShips[point] = self.__countPossibilities(point)
-
-
-    def __initChancesToHaveShips(self):
-
-        for row in range(0,8):
-            for col in range(0,8):
-                self.chancesToHaveShips[10*row + col] = -1
+        #print(total)
 
 
     def __getBoard(self):
 
+        horizontal = "horizontal"
+        vertical   = "vertical"
+        moveBottom = random.randint(0, 1)
+        if (moveBottom == 0):
+            orientation = vertical
+        else:
+            orientation = horizontal
+        moveTop   = random.randint(0, 1)
+        moveRight = random.randint(0, 1)
+
+        location2 = 57 + 10 * max(random.randint(0, 1), moveRight)
+        location3 = 00 + random.randint(0, 1) + 10 * random.randint(0, 1) * (moveBottom - 1)
+        location4 = 07 - moveTop + 10 * moveRight
+        location5 = 30 + moveBottom
+
+        if (location2 < 10):
+            location2 = "0" + str(location2)
+        if (location3 < 10):
+            location3 = "0" + str(location3)
+        if (location4 < 10):
+            location4 = "0" + str(location4)
+        if (location5 < 10):
+            location5 = "0" + str(location5)
+
         ship_positions = {
             2: {
-                "point": "67",
+                "point": str(location2),
                 "orientation": "horizontal"
             },
             3: {
-                "point": "00",
-                "orientation": "vertical"
+                "point": str(location3),
+                "orientation": orientation
             },
             4: {
-                "point": "07",
+                "point": str(location4),
                 "orientation": "horizontal"
             },
             5: {
-                "point": "30",
+                "point": str(location5),
                 "orientation": "horizontal"
             }
         }
@@ -261,6 +471,7 @@ class Battleship:
 
 
 if __name__ == "__main__":
+    random.seed()
     jsonFile = json.loads(sys.argv[1])
     bot_battleship = Battleship(jsonFile)
     bot_battleship.shoot()
