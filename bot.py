@@ -418,7 +418,7 @@ class Battleship:
         moveRight = random.randint(0, 1)
 
         location2 = (57 + 10 * max(random.randint(0, 1), moveRight)) - 7 * moveBottom * random.randint(0, 1)
-        location3 = 00 + random.randint(0, 1) * (1 - moveBottom) + 10 * random.randint(0, 1)
+        location3 = 00 + random.randint(0, 1) * (1 - moveBottom)
         location4 = 07 - moveTop + 10 * moveRight
         location5 = 30 + moveBottom
 
