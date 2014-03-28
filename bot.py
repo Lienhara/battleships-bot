@@ -137,8 +137,9 @@ class Battleship:
         neighbors = 0
         nLeft, nRight, nTop, nBottom = 0, 0, 0, 0
         for hit in self.hitNotDestroyed:
-            if (1 + self.__horizNeighbors(hit, self.hitNotDestroyed) == size) or \
-               (1 + self.__vertNeighbors(hit, self.hitNotDestroyed)  == size):
+            if (1 + self.__horizNeighbors(hit, self.hitNotDestroyed) == size):
+                numberFound += 1
+            if (1 + self.__vertNeighbors(hit, self.hitNotDestroyed)  == size):
                 numberFound += 1
 
         if numberFound == size:
