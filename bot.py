@@ -137,9 +137,8 @@ class Battleship:
         neighbors = 0
         nLeft, nRight, nTop, nBottom = 0, 0, 0, 0
         for hit in self.hitNotDestroyed:
-            if 1 + self.__horizNeighbors(hit, self.hitNotDestroyed) == size:
-                numberFound += 1
-            elif 1 + self.__vertNeighbors(hit, self.hitNotDestroyed) == size:
+            if (1 + self.__horizNeighbors(hit, self.hitNotDestroyed) == size) or \
+               (1 + self.__vertNeighbors(hit, self.hitNotDestroyed)  == size):
                 numberFound += 1
 
         if numberFound == size:
@@ -387,11 +386,6 @@ class Battleship:
         vNeighbors = nTop + nBottom
         possib += 100 * (hNeighbors * hNeighbors + vNeighbors * vNeighbors)
 
-        # Heuristic against human players : little ship in corners...
-        if (possib > 0) and (self.biggestNotDestroyed < 3):
-            if (move == 00) or (move == 77) or (move == 70) or (move == 07):
-                possib += 1
-
         return possib
 
 
@@ -404,23 +398,69 @@ class Battleship:
             self.chancesToHaveShips[point] = self.__countPossibilities(point)
         #print(total)
 
+    def __mirrorHorizontal(self, location, size, orientation):
+
+        row = location % 10
+        col = location / 10
+        if (orientation == "vertical"):
+            return row + 10 * (7 - col)
+
+        # orientation == horizontal
+        return row + 10 * (7 - (col + size - 1))
+
+    def __mirrorVertical(self, location, size, orientation):
+
+        row = location % 10
+        col = location / 10
+        if (orientation == "horizontal"):
+            return 7 - row + 10 * col
+
+        # orientation == vertical
+        return 7 - (row + size - 1) + 10 * col
 
     def __getBoard(self):
 
         horizontal = "horizontal"
         vertical   = "vertical"
         moveBottom = random.randint(0, 1)
+
+        
         if (moveBottom == 0):
-            orientation = vertical
+            orientation3 = vertical
         else:
-            orientation = horizontal
+            orientation3 = horizontal
+        orientation4 = horizontal
+        orientation5 = horizontal
+
         moveTop   = random.randint(0, 1)
         moveRight = random.randint(0, 1)
 
-        location2 = (57 + 10 * max(random.randint(0, 1), moveRight)) - 7 * moveBottom * random.randint(0, 1)
+        posShip2  = random.randint(1, 6)
+
+        if (posShip2 < 4):
+            location2 = (57 + 10 * max(random.randint(0, 1), moveRight)) - 7 * moveBottom * random.randint(0, 1)
+            orientation2 = horizontal
+        elif (posShip2 == 4):
+            location2 = 75 + random.randint(0, 1)
+            orientation2 = vertical
+        else:
+            location2 = 65
+            orientation2 = horizontal
+
         location3 = 00 + random.randint(0, 1) * (1 - moveBottom)
         location4 = 07 - moveTop + 10 * moveRight
         location5 = 30 + moveBottom
+
+        if (random.randint(0, 1) == 1):
+            location2 = self.__mirrorHorizontal(location2, 2, orientation2)
+            location3 = self.__mirrorHorizontal(location3, 3, orientation3)
+            location4 = self.__mirrorHorizontal(location4, 4, orientation4)
+            location5 = self.__mirrorHorizontal(location5, 5, orientation5)
+        if (random.randint(0, 1) == 1):
+            location2 = self.__mirrorVertical(location2, 2, orientation2)
+            location3 = self.__mirrorVertical(location3, 3, orientation3)
+            location4 = self.__mirrorVertical(location4, 4, orientation4)
+            location5 = self.__mirrorVertical(location5, 5, orientation5)
 
         if (location2 < 10):
             location2 = "0" + str(location2)
@@ -434,19 +474,19 @@ class Battleship:
         ship_positions = {
             2: {
                 "point": str(location2),
-                "orientation": "horizontal"
+                "orientation": orientation2
             },
             3: {
                 "point": str(location3),
-                "orientation": orientation
+                "orientation": orientation3
             },
             4: {
                 "point": str(location4),
-                "orientation": "horizontal"
+                "orientation": orientation4
             },
             5: {
                 "point": str(location5),
-                "orientation": "horizontal"
+                "orientation": orientation5
             }
         }
 
