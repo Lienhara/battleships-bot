@@ -11,6 +11,8 @@ class Battleship:
 
     def __init__(self, jsonFile):
 
+        # For debug
+        self.printStuff = False
         self.command = jsonFile["cmd"]
 
 		# In this case, nothing to compute, just return the initialized board
@@ -82,11 +84,11 @@ class Battleship:
 
     def __initEmptyCells(self):
 
-        for row in range(0,8):
-            for col in range(0,8):
-                if (not (10*row + col in self.missedAndDestroyed)) and \
-                   (not (10*row + col in self.hitNotDestroyed)):
-                    self.emptyCells.append(10*row + col)
+        for col in range(0,8):
+            for row in range(0,8):
+                if (not (10*col + row in self.missedAndDestroyed)) and \
+                   (not (10*col + row in self.hitNotDestroyed)):
+                    self.emptyCells.append(10*col + row)
 
 
     def __findDestroyedShips(self):
@@ -94,22 +96,21 @@ class Battleship:
         if not(self.destroyed):
             return 0
 
-        numberCellsHit = 0
+        destroyedCells = 0
         if 5 in self.destroyed:
-            numberCellsHit += 5
+            destroyedCells += 5
         if 4 in self.destroyed:
-            numberCellsHit += 4
+            destroyedCells += 4
         if 3 in self.destroyed:
-            numberCellsHit += 3
+            destroyedCells += 3
         if 2 in self.destroyed:
-            numberCellsHit += 2
-        if numberCellsHit == len(self.hitNotDestroyed):
+            destroyedCells += 2
+        if destroyedCells == len(self.hitNotDestroyed):
             self.missedAndDestroyed.extend(self.hitNotDestroyed)
             self.hitNotDestroyed = []
             return 0
         
         # Find biggest first
-        count = 0
         if 5 in self.destroyed:
             self.__findDestroyedShip(5)
         if 4 in self.destroyed:
@@ -119,6 +120,7 @@ class Battleship:
         if 2 in self.destroyed:
             self.__findDestroyedShip(2)
         # Just to be sure...
+        count = 0
         while(count < 3):
             if (5 in self.destroyed) and (not self.ship5IsFound):
                 self.__findDestroyedShip(5)
@@ -133,81 +135,46 @@ class Battleship:
 
     def __findDestroyedShip(self, size):
 
-        numberFound = 0
-        neighbors = 0
-        nLeft, nRight, nTop, nBottom = 0, 0, 0, 0
-        for hit in self.hitNotDestroyed:
-            if (1 + self.__horizNeighbors(hit, self.hitNotDestroyed) == size):
-                numberFound += 1
-            if (1 + self.__vertNeighbors(hit, self.hitNotDestroyed)  == size):
-                numberFound += 1
+        # A ship cannot be killed by a shot in the middle of the ship
+        destroyingMove = self.__findMoveDestroyingShip(size)
+        destroyingIndex = self.intMyHits.index(destroyingMove)
+        destroyedSize = size
+        left, right, top, bottom = False, False, False, False
+        left   = self.__checkIfDestroyedLeft(destroyingMove, destroyingIndex, destroyedSize)
+        right  = self.__checkIfDestroyedRight(destroyingMove, destroyingIndex, destroyedSize)
+        top    = self.__checkIfDestroyedTop(destroyingMove, destroyingIndex, destroyedSize)
+        bottom = self.__checkIfDestroyedBottom(destroyingMove, destroyingIndex, destroyedSize)
 
-        if numberFound == size:
-            for hit in self.hitNotDestroyed:
-                if 1 + self.__horizNeighbors(hit, self.hitNotDestroyed) == size:
-                    nLeft = self.__leftNeighbors(hit, self.hitNotDestroyed)
-                    nRight = self.__rightNeighbors(hit, self.hitNotDestroyed)
-                    for i in range(1,nLeft+1) :
-                        self.missedAndDestroyed.append(hit-10*i)
-                        self.hitNotDestroyed.remove(hit-10*i)
-                    for i in range(1,nRight+1) :
-                        self.missedAndDestroyed.append(hit+10*i)
-                        self.hitNotDestroyed.remove(hit+10*i)
-                    self.missedAndDestroyed.append(hit)
-                    self.hitNotDestroyed.remove(hit)
-                    break
-                elif 1 + self.__vertNeighbors(hit, self.hitNotDestroyed) == size:
-                    nTop = self.__topNeighbors(hit, self.hitNotDestroyed)
-                    nBottom = self.__bottomNeighbors(hit, self.hitNotDestroyed)
-                    for i in range(1,nTop+1) :
-                        self.missedAndDestroyed.append(hit-i)
-                        self.hitNotDestroyed.remove(hit-i)
-                    for i in range(1,nBottom+1) :
-                        self.missedAndDestroyed.append(hit+i)
-                        self.hitNotDestroyed.remove(hit+i)
-                    self.missedAndDestroyed.append(hit)
-                    self.hitNotDestroyed.remove(hit)
-                    break
-        else:
-            destroyingMove = self.__findMoveDestroyingShip(size)
-            destroyingIndex = self.intMyHits.index(destroyingMove)
-            destroyedSize = size
-            left, right, top, bottom = False, False, False, False
-            left   = self.__checkIfDestroyedLeft(destroyingMove, destroyingIndex, destroyedSize)
-            right  = self.__checkIfDestroyedRight(destroyingMove, destroyingIndex, destroyedSize)
-            top    = self.__checkIfDestroyedTop(destroyingMove, destroyingIndex, destroyedSize)
-            bottom = self.__checkIfDestroyedBottom(destroyingMove, destroyingIndex, destroyedSize)
+        possib = 0
+        if left:
+            possib += 1
+        if right:
+            possib += 1
+        if top:
+            possib += 1
+        if bottom:
+            possib += 1
+        if possib > 1:
+            if (self.printStuff):
+                print("Ship " + str(size) + " is not found, several possible locations : " + str(possib))
+            return 0
 
-            possib = 0
-            if left:
-                possib += 1
-            if right:
-                possib += 1
-            if top:
-                possib += 1
-            if bottom:
-                possib += 1
-            if possib > 1:
-                return 0
-
-            self.hitNotDestroyed.remove(destroyingMove)
-            self.missedAndDestroyed.append(destroyingMove)
-            if (left):
-                for index in range(1, destroyedSize):
-                    self.hitNotDestroyed.remove(destroyingMove - 10*index)
-                    self.missedAndDestroyed.append(destroyingMove - 10*index)
-            if (right):
-                for index in range(1, destroyedSize):
-                    self.hitNotDestroyed.remove(destroyingMove + 10*index)
-                    self.missedAndDestroyed.append(destroyingMove + 10*index)
-            if (top):
-                for index in range(1, destroyedSize):
-                    self.hitNotDestroyed.remove(destroyingMove - index)
-                    self.missedAndDestroyed.append(destroyingMove - index)
-            if (bottom):
-                for index in range(1, destroyedSize):
-                    self.hitNotDestroyed.remove(destroyingMove + index)
-                    self.missedAndDestroyed.append(destroyingMove + index)
+        if (left):
+            for index in range(0, destroyedSize):
+                self.hitNotDestroyed.remove(destroyingMove - 10*index)
+                self.missedAndDestroyed.append(destroyingMove - 10*index)
+        if (right):
+            for index in range(0, destroyedSize):
+                self.hitNotDestroyed.remove(destroyingMove + 10*index)
+                self.missedAndDestroyed.append(destroyingMove + 10*index)
+        if (top):
+            for index in range(0, destroyedSize):
+                self.hitNotDestroyed.remove(destroyingMove - index)
+                self.missedAndDestroyed.append(destroyingMove - index)
+        if (bottom):
+            for index in range(0, destroyedSize):
+                self.hitNotDestroyed.remove(destroyingMove + index)
+                self.missedAndDestroyed.append(destroyingMove + index)
 
         if (size == 2):
             self.ship2IsFound = True
@@ -217,6 +184,9 @@ class Battleship:
             self.ship4IsFound = True
         if (size == 5):
             self.ship5IsFound = True
+
+        if (self.printStuff):
+            print("Ship " + str(size) + " is found.")
 
     def __findMoveDestroyingShip(self, size):
 
@@ -397,7 +367,20 @@ class Battleship:
         for point in self.emptyCells:
             #total += self.__countPossibilities(point)
             self.chancesToHaveShips[point] = self.__countPossibilities(point)
+            if (self.printStuff):
+                print("Location " + str(point) + " : " + str(self.chancesToHaveShips[point]))
         #print(total)
+
+    def __mirrorDiagonal(self, location, size, orientation):
+
+        row = location % 10
+        col = location / 10
+        if (orientation == "vertical"):
+            newOrientation = "horizontal"
+        else:
+            newOrientation = "vertical"
+
+        return col + 10 * row, newOrientation
 
     def __mirrorHorizontal(self, location, size, orientation):
 
@@ -421,11 +404,14 @@ class Battleship:
 
     def __getBoard(self):
 
+        # Variables for pseudo random ship initialization
         horizontal = "horizontal"
         vertical   = "vertical"
         moveBottom = random.randint(0, 1)
+        moveTop   = random.randint(0, 1)
+        moveRight = random.randint(0, 1)
+        posShip2  = random.randint(1, 6)
 
-        
         if (moveBottom == 0):
             orientation3 = vertical
         else:
@@ -433,11 +419,7 @@ class Battleship:
         orientation4 = horizontal
         orientation5 = horizontal
 
-        moveTop   = random.randint(0, 1)
-        moveRight = random.randint(0, 1)
-
-        posShip2  = random.randint(1, 6)
-
+        # Pseudo random ship initialization
         if (posShip2 < 4):
             location2 = (57 + 10 * max(random.randint(0, 1), moveRight)) - 7 * moveBottom * random.randint(0, 1)
             orientation2 = horizontal
@@ -447,11 +429,16 @@ class Battleship:
         else:
             location2 = 65
             orientation2 = horizontal
-
         location3 = 00 + random.randint(0, 1) * (1 - moveBottom)
         location4 = 07 - moveTop + 10 * moveRight
         location5 = 30 + moveBottom
 
+        # Map orientation, to enhance the number of possible initializations, using map symmetries
+        if (random.randint(0, 1) == 1):
+            location2, orientation2 = self.__mirrorDiagonal(location2, 2, orientation2)
+            location3, orientation3 = self.__mirrorDiagonal(location3, 3, orientation3)
+            location4, orientation4 = self.__mirrorDiagonal(location4, 4, orientation4)
+            location5, orientation5 = self.__mirrorDiagonal(location5, 5, orientation5)
         if (random.randint(0, 1) == 1):
             location2 = self.__mirrorHorizontal(location2, 2, orientation2)
             location3 = self.__mirrorHorizontal(location3, 3, orientation3)
@@ -463,6 +450,7 @@ class Battleship:
             location4 = self.__mirrorVertical(location4, 4, orientation4)
             location5 = self.__mirrorVertical(location5, 5, orientation5)
 
+        # Enforce the printing of "0X" instead of "X" for locations
         if (location2 < 10):
             location2 = "0" + str(location2)
         if (location3 < 10):
@@ -532,6 +520,9 @@ class Battleship:
 
 if __name__ == "__main__":
     random.seed()
+    # Used in debug mode
+    #jsonFile = open(sys.argv[1])
+    #jsonFile = json.load(jsonFile)
     jsonFile = json.loads(sys.argv[1])
     bot_battleship = Battleship(jsonFile)
     bot_battleship.shoot()
